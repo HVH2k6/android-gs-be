@@ -1,0 +1,5 @@
+[tool.prisma]
+# prisma-client-py 0.14 can resolve the extensionless Unix npm shim on
+# Windows, which fails with WinError 193. Its managed Node environment uses
+# npm.cmd and avoids that launcher mismatch.
+use_global_node = false

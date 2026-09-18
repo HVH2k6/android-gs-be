@@ -1,0 +1,843 @@
+// AI Android Learning Monitoring System - Database Schema
+// PostgreSQL + Prisma ORM for Python Backend (via prisma-client-py)
+
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// AUTHENTICATION & USER MANAGEMENT
+// ============================================================================
+
+enum DeviceType {
+  DESKTOP_AGENT  // C# monitoring agent
+  MOBILE_APP     // Android student app
+  WEB_CLIENT
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique // "STUDENT", "INSTRUCTOR", "ADMIN"
+  description String?
+  permissions Json     @default("[]") // Array of permission strings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+
+  @@index([name])
+  @@map("roles")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // hashed
+  roleId    String
+  name      String
+  avatar    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  role    Role      @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  student Student?
+  devices Device[]
+
+  @@index([email])
+  @@index([roleId])
+  @@map("users")
+}
+
+// Security: Device pairing & authentication (addresses flow.md concern)
+model Device {
+  id               String     @id @default(cuid())
+  userId           String
+  deviceType       DeviceType
+  deviceName       String // "John's PC" / "John's Phone"
+  deviceFingerprint String    @unique // Hardware ID / UUID
+  pairingToken     String?    @unique // QR code token for initial pairing
+  pairingExpiresAt DateTime?
+  isPaired         Boolean    @default(false)
+  lastSeenAt       DateTime   @default(now())
+  createdAt        DateTime   @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions LearningSession[]
+
+  @@index([userId])
+  @@index([deviceFingerprint])
+  @@map("devices")
+}
+
+// ============================================================================
+// LEARNING CONTENT
+// ============================================================================
+
+model Course {
+  id          String   @id @default(cuid())
+  code        String   @unique // "CS101"
+  title       String
+  description String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lessons     Lesson[]
+  assignments Assignment[]
+  enrollments Enrollment[]
+
+  @@index([code])
+  @@map("courses")
+}
+
+model Lesson {
+  id        String   @id @default(cuid())
+  courseId  String
+  order     Int
+  title     String
+  content   String   @db.Text // Markdown/HTML
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course             Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  feedbackReferences FeedbackReference[]
+
+  @@unique([courseId, order])
+  @@index([courseId])
+  @@map("lessons")
+}
+
+// ============================================================================
+// ASSIGNMENTS & REQUIREMENTS
+// ============================================================================
+
+enum AssignmentDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+model Assignment {
+  id          String               @id @default(cuid())
+  courseId    String
+  order       Int
+  title       String
+  description String               @db.Text
+  difficulty  AssignmentDifficulty @default(BEGINNER)
+  timeEstimate Int?                // minutes
+  isPublished Boolean              @default(false)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  course       Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  requirements AssignmentRequirement[]
+  sessions     LearningSession[]
+
+  @@unique([courseId, order])
+  @@index([courseId])
+  @@map("assignments")
+}
+
+enum RequirementType {
+  FUNCTIONAL      // Must implement feature
+  STRUCTURAL      // Must use specific pattern (ViewModel, Repository, etc)
+  QUALITY         // Code quality standard
+  VALIDATION      // Input validation
+  NAVIGATION      // Screen navigation
+  UI              // UI component presence
+}
+
+enum RequirementEvalMethod {
+  AST_PATTERN     // Check via AST tree-sitter pattern
+  GRADLE_BUILD    // Verify via successful build
+  LINT_RULE       // Android Lint / Detekt rule
+  FUNCTION_CALL   // Specific method must be called
+  CLASS_EXISTS    // Class/interface must exist
+  MANUAL          // Requires LLM semantic check
+}
+
+model AssignmentRequirement {
+  id           String                @id @default(cuid())
+  assignmentId String
+  order        Int
+  type         RequirementType
+  title        String
+  description  String                @db.Text
+  evalMethod   RequirementEvalMethod
+  evalConfig   Json?                 // AST query, rule ID, etc
+  points       Int                   @default(1)
+  createdAt    DateTime              @default(now())
+
+  assignment Assignment               @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  evaluations RequirementEvaluation[]
+
+  @@unique([assignmentId, order])
+  @@index([assignmentId])
+  @@map("assignment_requirements")
+}
+
+// ============================================================================
+// STUDENTS & ENROLLMENT
+// ============================================================================
+
+model Student {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  studentId String   @unique // University ID
+  major     String?
+  year      Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+  sessions    LearningSession[]
+  progress    StudentProgress[]
+
+  @@index([studentId])
+  @@map("students")
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+}
+
+model Enrollment {
+  id         String           @id @default(cuid())
+  studentId  String
+  courseId   String
+  status     EnrollmentStatus @default(ACTIVE)
+  enrolledAt DateTime         @default(now())
+  completedAt DateTime?
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+  @@index([studentId])
+  @@index([courseId])
+  @@map("enrollments")
+}
+
+// ============================================================================
+// LEARNING SESSIONS
+// ============================================================================
+
+enum SessionStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ABANDONED
+}
+
+model LearningSession {
+  id           String        @id @default(cuid())
+  studentId    String
+  assignmentId String
+  deviceId     String?       // Desktop agent device
+  status       SessionStatus @default(ACTIVE)
+  startedAt    DateTime      @default(now())
+  completedAt  DateTime?
+  lastActiveAt DateTime      @default(now())
+
+  student    Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assignment Assignment    @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  device     Device?       @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  project       Project?
+  analysisRuns  AnalysisRun[]
+  issues        CodeIssue[]
+  feedback      CodeFeedback[]
+  evaluations   RequirementEvaluation[]
+  aiInteractions AIInteraction[]
+  realtimeEvents RealtimeEvent[]
+
+  @@index([studentId])
+  @@index([assignmentId])
+  @@index([deviceId])
+  @@index([status, lastActiveAt])
+  @@map("learning_sessions")
+}
+
+// ============================================================================
+// PROJECT STATE MANAGEMENT
+// ============================================================================
+
+model Project {
+  id         String   @id @default(cuid())
+  sessionId  String   @unique
+  name       String
+  packageName String?
+  rootPath   String   // Original path on student's machine
+  lastSyncAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  session LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  files   ProjectFile[]
+
+  @@index([sessionId])
+  @@map("projects")
+}
+
+enum FileStatus {
+  ACTIVE
+  DELETED
+}
+
+// Stores current project state + version history
+model ProjectFile {
+  id          String     @id @default(cuid())
+  projectId   String
+  path        String     // Relative path: "app/src/main/java/.../LoginActivity.kt"
+  version     Int        @default(1)
+  content     String     @db.Text
+  contentHash String     // xxHash64 for deduplication (flow.md recommendation)
+  sizeBytes   Int        // File size limit check (flow.md security)
+  language    String?    // "kotlin", "java", "xml", "gradle"
+  status      FileStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues  CodeIssue[]
+
+  @@unique([projectId, path, version])
+  @@index([projectId, status])
+  @@index([contentHash]) // Fast duplicate detection
+  @@map("project_files")
+}
+
+// ============================================================================
+// ANALYSIS PIPELINE
+// ============================================================================
+
+enum AnalysisStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AnalysisStage {
+  SYNTAX_CHECK      // tree-sitter parse
+  STATIC_ANALYSIS   // Detekt / custom rules
+  BUILD_CHECK       // Gradle build in sandbox
+  LINT_CHECK        // Android Lint
+  REQUIREMENT_EVAL  // Assignment rule engine
+  ML_ANALYSIS       // ML model prediction
+  RAG_SEARCH        // Vector search for context
+  LLM_ANALYSIS      // LLM semantic check
+}
+
+model AnalysisRun {
+  id              String         @id @default(cuid())
+  sessionId       String
+  triggeredBy     String         // "file_change", "manual", "requirement_check"
+  status          AnalysisStatus @default(PENDING)
+  currentStage    AnalysisStage?
+  startedAt       DateTime       @default(now())
+  completedAt     DateTime?
+  errorMessage    String?        @db.Text
+  stagesCompleted Json           @default("[]") // Array of completed stages
+  metricsJson     Json?          // Duration per stage, token usage, etc
+
+  session  LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  issues   CodeIssue[]
+  feedback CodeFeedback[]
+
+  @@index([sessionId, status])
+  @@index([startedAt])
+  @@map("analysis_runs")
+}
+
+// ============================================================================
+// CODE ISSUES & LIFECYCLE
+// ============================================================================
+
+enum IssueStatus {
+  OPEN
+  RESOLVED
+  IGNORED
+  REOPENED
+}
+
+enum IssueSeverity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IssueCategory {
+  SYNTAX_ERROR
+  BUILD_ERROR
+  LOGIC_ERROR
+  STYLE_WARNING
+  SECURITY_ISSUE
+  PERFORMANCE
+  BEST_PRACTICE
+  REQUIREMENT_VIOLATION
+}
+
+// Issue fingerprinting via AST instead of line numbers (flow.md recommendation)
+model CodeIssue {
+  id              String         @id @default(cuid())
+  sessionId       String
+  analysisRunId   String
+  fileId          String?        // Null if file was deleted
+
+  // Location (unstable - for display only)
+  filePath        String
+  lineStart       Int
+  lineEnd         Int?
+  columnStart     Int?
+  columnEnd       Int?
+
+  // Stable identity (flow.md: AST fingerprinting)
+  issueFingerprint String        // Hash of: rule_id + method_scope + node_type + context
+  astNodePath     String?        @db.Text // AST path for precise tracking
+
+  category        IssueCategory
+  severity        IssueSeverity
+  status          IssueStatus    @default(OPEN)
+
+  title           String
+  message         String         @db.Text
+  ruleId          String?        // Lint rule / Detekt rule ID
+
+  detectedAt      DateTime       @default(now())
+  resolvedAt      DateTime?
+  resolutionTime  Int?           // Seconds to resolve
+  attemptCount    Int            @default(1) // Times student tried fixing
+
+  session     LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  analysisRun AnalysisRun     @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+  file        ProjectFile?    @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  feedback    CodeFeedback[]
+
+  @@unique([sessionId, issueFingerprint]) // Prevent duplicate issues
+  @@index([sessionId, status])
+  @@index([issueFingerprint])
+  @@index([status, detectedAt])
+  @@map("code_issues")
+}
+
+// ============================================================================
+// FEEDBACK & EXPLANATIONS
+// ============================================================================
+
+enum FeedbackType {
+  ERROR
+  WARNING
+  SUGGESTION
+  PROGRESS
+  INFO
+}
+
+model CodeFeedback {
+  id            String       @id @default(cuid())
+  sessionId     String
+  analysisRunId String?
+  issueId       String?      // Linked to specific issue if applicable
+
+  type          FeedbackType
+  title         String
+  message       String       @db.Text
+  explanation   String?      @db.Text // AI-generated explanation
+  suggestedFix  String?      @db.Text
+  codeSnippet   String?      @db.Text
+
+  confidence    Float?       // 0.0-1.0 for ML/AI feedback
+  source        String       // "lint", "detekt", "rule_engine", "llm", "ml"
+
+  createdAt     DateTime     @default(now())
+
+  session     LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  analysisRun AnalysisRun?    @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
+  issue       CodeIssue?      @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  references  FeedbackReference[]
+
+  @@index([sessionId, createdAt])
+  @@index([issueId])
+  @@map("code_feedback")
+}
+
+// Links feedback to relevant learning materials (RAG)
+model FeedbackReference {
+  id         String @id @default(cuid())
+  feedbackId String
+  lessonId   String?
+  externalUrl String?
+  title      String
+  snippet    String? @db.Text
+  relevanceScore Float? // Cosine similarity from vector search
+
+  feedback CodeFeedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  lesson   Lesson?      @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  @@index([feedbackId])
+  @@map("feedback_references")
+}
+
+// ============================================================================
+// REQUIREMENT EVALUATION & PROGRESS
+// ============================================================================
+
+enum EvaluationStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model RequirementEvaluation {
+  id            String           @id @default(cuid())
+  sessionId     String
+  requirementId String
+  status        EvaluationStatus @default(NOT_STARTED)
+  passed        Boolean          @default(false)
+  confidence    Float?           // 0.0-1.0 for ML/LLM evaluations
+  evidence      String?          @db.Text // AST nodes found, code excerpts, etc
+  evaluatedAt   DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  session     LearningSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  requirement AssignmentRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, requirementId])
+  @@index([sessionId, status])
+  @@index([requirementId])
+  @@map("requirement_evaluations")
+}
+
+model StudentProgress {
+  id              String   @id @default(cuid())
+  studentId       String
+  assignmentId    String
+  sessionId       String?  // Current/last session
+
+  totalRequirements    Int
+  completedRequirements Int
+  progressPercentage   Float
+
+  totalIssues     Int      @default(0)
+  resolvedIssues  Int      @default(0)
+  openIssues      Int      @default(0)
+
+  timeSpentSeconds Int     @default(0)
+  hintsViewed     Int      @default(0)
+  attemptsCount   Int      @default(0)
+
+  startedAt       DateTime @default(now())
+  lastUpdatedAt   DateTime @updatedAt
+  completedAt     DateTime?
+
+  student    Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, assignmentId])
+  @@index([studentId])
+  @@index([assignmentId])
+  @@map("student_progress")
+}
+
+// ============================================================================
+// AI/ML LAYER
+// ============================================================================
+
+enum AIProvider {
+  OPENAI
+  ANTHROPIC
+  GEMINI
+  LOCAL_MODEL
+}
+
+model AIInteraction {
+  id           String     @id @default(cuid())
+  sessionId    String
+  provider     AIProvider
+  model        String     // "gpt-4", "claude-3-opus", etc
+
+  promptTokens Int
+  completionTokens Int
+  totalCost    Float?     // USD
+
+  inputContext Json       // Structured context sent to LLM
+  response     Json       // Structured LLM response
+
+  latencyMs    Int?
+  createdAt    DateTime   @default(now())
+
+  session LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@index([provider, createdAt])
+  @@map("ai_interactions")
+}
+
+// ============================================================================
+// RAG & KNOWLEDGE BASE
+// ============================================================================
+
+// Learning materials embedded into vector space for semantic search
+model KnowledgeDocument {
+  id          String   @id @default(cuid())
+  lessonId    String?
+  courseId    String?
+  type        String   // "lesson", "example", "documentation", "common_mistake"
+  title       String
+  content     String   @db.Text
+  embedding   Json? // Embedding vector stored as JSON array (pgvector not installed)
+  metadata    Json?    // Source, tags, difficulty level
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([type])
+  @@index([lessonId])
+  @@map("knowledge_documents")
+}
+
+// Common Android mistakes database for quick lookup
+model CommonMistake {
+  id           String @id @default(cuid())
+  pattern      String @db.Text // Code pattern or AST structure
+  category     String
+  title        String
+  explanation  String @db.Text
+  correctExample String? @db.Text
+  relatedTopics Json   @default("[]")
+
+  @@index([category])
+  @@map("common_mistakes")
+}
+
+// ============================================================================
+// REALTIME COMMUNICATION & OUTBOX
+// ============================================================================
+
+enum EventType {
+  CODE_FEEDBACK
+  ISSUE_DETECTED
+  ISSUE_UPDATED
+  ISSUE_RESOLVED
+  REQUIREMENT_COMPLETED
+  PROGRESS_UPDATED
+  ANALYSIS_STARTED
+  ANALYSIS_COMPLETED
+  ANALYSIS_FAILED
+  SESSION_SYNC
+}
+
+enum EventStatus {
+  PENDING
+  SENT
+  FAILED
+  ACKNOWLEDGED
+}
+
+// Outbox pattern for reliable WebSocket delivery
+model RealtimeEvent {
+  id           String      @id @default(cuid())
+  sessionId    String
+  eventType    EventType
+  status       EventStatus @default(PENDING)
+
+  payload      Json        // Event data
+  targetDeviceType DeviceType? // DESKTOP_AGENT or MOBILE_APP
+
+  retryCount   Int         @default(0)
+  maxRetries   Int         @default(3)
+
+  createdAt    DateTime    @default(now())
+  sentAt       DateTime?
+  acknowledgedAt DateTime?
+
+  session LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, status, createdAt])
+  @@index([status, createdAt])
+  @@map("realtime_events")
+}
+
+// ============================================================================
+// BACKGROUND TASK QUEUE (flow.md: Celery/ARQ integration)
+// ============================================================================
+
+enum TaskStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  TIMEOUT
+}
+
+enum TaskPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model BackgroundTask {
+  id            String       @id @default(cuid())
+  taskType      String       // "analysis_pipeline", "gradle_build", "lint_check", "llm_analysis"
+  sessionId     String?
+  priority      TaskPriority @default(NORMAL)
+  status        TaskStatus   @default(QUEUED)
+
+  payload       Json         // Task parameters
+  result        Json?        // Task output
+  errorMessage  String?      @db.Text
+
+  workerId      String?      // Celery/ARQ worker ID
+  startedAt     DateTime?
+  completedAt   DateTime?
+  timeoutAt     DateTime?
+
+  retryCount    Int          @default(0)
+  maxRetries    Int          @default(3)
+
+  createdAt     DateTime     @default(now())
+
+  @@index([status, priority, createdAt])
+  @@index([sessionId, status])
+  @@index([taskType, status])
+  @@map("background_tasks")
+}
+
+// ============================================================================
+// SECURITY & SANDBOX EXECUTION (flow.md: RCE prevention)
+// ============================================================================
+
+enum SandboxStatus {
+  CREATED
+  RUNNING
+  COMPLETED
+  TIMEOUT
+  KILLED
+  ERROR
+}
+
+model SandboxExecution {
+  id            String        @id @default(cuid())
+  sessionId     String
+  taskType      String        // "gradle_build", "lint", "unit_test"
+
+  containerID   String?       // Docker container ID
+  imageName     String        // Docker image used
+
+  status        SandboxStatus @default(CREATED)
+  exitCode      Int?
+  stdout        String?       @db.Text
+  stderr        String?       @db.Text
+
+  cpuLimit      String        // "1.0" (1 CPU core)
+  memoryLimit   String        // "512m"
+  timeoutSeconds Int          @default(60)
+
+  startedAt     DateTime      @default(now())
+  completedAt   DateTime?
+  killedAt      DateTime?
+
+  @@index([sessionId, status])
+  @@index([status, startedAt])
+  @@map("sandbox_executions")
+}
+
+// File upload size tracking (flow.md: prevent 50MB binary upload)
+model FileUploadLog {
+  id         String   @id @default(cuid())
+  sessionId  String
+  deviceId   String
+  filePath   String
+  sizeBytes  Int
+  mimeType   String?
+  isRejected Boolean  @default(false)
+  rejectReason String?
+  uploadedAt DateTime @default(now())
+
+  @@index([sessionId, uploadedAt])
+  @@index([isRejected])
+  @@map("file_upload_logs")
+}
+
+// ============================================================================
+// AUDIT & ANALYTICS
+// ============================================================================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  sessionId  String?
+  action     String   // "login", "start_session", "submit_code", "complete_assignment"
+  entityType String?  // "User", "Project", "Assignment"
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
+// Learning analytics for ML training
+model LearningEvent {
+  id           String   @id @default(cuid())
+  studentId    String
+  sessionId    String
+  eventType    String   // "code_change", "issue_detected", "hint_viewed", "requirement_completed"
+  eventData    Json
+  timestamp    DateTime @default(now())
+
+  @@index([studentId, timestamp])
+  @@index([sessionId, timestamp])
+  @@index([eventType, timestamp])
+  @@map("learning_events")
+}
+
+// ============================================================================
+// SYSTEM CONFIGURATION
+// ============================================================================
+
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  dataType  String   // "string", "int", "float", "json", "boolean"
+  category  String   // "analysis", "ai", "security", "limits"
+  description String?
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@map("system_config")
+}
+
+// Rate limiting for API endpoints
+model RateLimit {
+  id           String   @id @default(cuid())
+  identifier   String   // User ID, Device ID, or IP address
+  endpoint     String   // "/api/projects/sync", "/api/analysis/run"
+  requestCount Int      @default(1)
+  windowStart  DateTime @default(now())
+  windowEnd    DateTime
+
+  @@unique([identifier, endpoint, windowStart])
+  @@index([identifier, endpoint, windowEnd])
+  @@map("rate_limits")
+}

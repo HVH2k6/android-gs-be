@@ -1,0 +1,560 @@
+[
+  {
+    "code": "class BadAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {\n\n    var items = mutableListOf<String>()\n\n    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {\n        val tv = TextView(parent.context)\n        tv.textSize = 16f\n        tv.setPadding(16, 16, 16, 16)\n        return object : RecyclerView.ViewHolder(tv) {}\n    }\n\n    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {\n        val textView = holder.itemView as TextView\n        textView.text = items[position]\n        textView.setOnClickListener {\n            items.removeAt(position)\n            notifyDataSetChanged()\n            Toast.makeText(it.context, \"Removed\", Toast.LENGTH_SHORT).show()\n        }\n    }\n\n    override fun getRecord0Count() = items.size\n\n    fun addRecord0(item: String) {\n        items.add(item)\n        notifyDataSetChanged()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_14.kt"
+  },
+  {
+    "code": "sealed class UiState<out T> {\n    object Loading : UiState<Nothing>()\n    data class Success<T>(val data: T) : UiState<T>()\n    data class Error(val message: String?) : UiState<Nothing>()\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_25.kt"
+  },
+  {
+    "code": "class BadAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {\n\n    var items = mutableListOf<String>()\n\n    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {\n        val tv = TextView(parent.context)\n        tv.textSize = 16f\n        tv.setPadding(16, 16, 16, 16)\n        return object : RecyclerView.ViewHolder(tv) {}\n    }\n\n    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {\n        val textView = holder.itemView as TextView\n        textView.text = items[position]\n        textView.setOnClickListener {\n            items.removeAt(position)\n            notifyDataSetChanged()\n            Toast.makeText(it.context, \"Removed\", Toast.LENGTH_SHORT).show()\n        }\n    }\n\n    override fun getItemCount() = items.size\n\n    fun addItem(item: String) {\n        items.add(item)\n        notifyDataSetChanged()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_13.kt"
+  },
+  {
+    "code": "class GetData3UseCase @Inject constructor(\n    private val repository: Data3Repository,\n    private val dispatcher: CoroutineDispatcher = Dispatchers.IO\n) {\n    suspend operator fun invoke(userId: String): Result<Data3> = withContext(dispatcher) {\n        repository.getData3ById(userId)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_10.kt"
+  },
+  {
+    "code": "class Data3RepositoryImpl @Inject constructor(\n    private val remoteDataSource: Data3RemoteDataSource,\n    private val localDataSource: Data3LocalDataSource\n) : Data3Repository {\n\n    override suspend fun getData3s(): Result<List<Data3>> = try {\n        val users = remoteDataSource.fetchData3s()\n        localDataSource.saveData3s(users)\n        Result.success(users)\n    } catch (e: Exception) {\n        val cachedData3s = localDataSource.getData3s()\n        if (cachedData3s.isNotEmpty()) {\n            Result.success(cachedData3s)\n        } else {\n            Result.failure(e)\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_15.kt"
+  },
+  {
+    "code": "class CallbackHell {\n\n    fun loadData(callback: (String) -> Unit) {\n        fetchFromServer { result1 ->\n            parseResult(result1) { result2 ->\n                validateData(result2) { result3 ->\n                    saveToDatabase(result3) { result4 ->\n                        updateCache(result4) { result5 ->\n                            notifyObservers(result5) { result6 ->\n                                callback(result6)\n                            }\n                        }\n                    }\n                }\n            }\n        }\n    }\n\n    private fun fetchFromServer(callback: (String) -> Unit) {\n        callback(\"data\")\n    }\n\n    private fun parseResult(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun validateData(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun saveToDatabase(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun updateCache(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun notifyObservers(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_22.kt"
+  },
+  {
+    "code": "class LeakyActivity : AppCompatActivity() {\n\n    companion object {\n        var context: Context? = null\n        lateinit var instance: LeakyActivity\n        var sharedData = HashMap<String, Any>()\n    }\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        context = this\n        instance = this\n\n        val btn = findViewById<Button>(R.id.button)\n        btn.setOnClickListener {\n            GlobalScope.launch {\n                doBackgroundWork()\n            }\n        }\n    }\n\n    private fun doBackgroundWork() {\n        Thread.sleep(5000)\n        runOnUiThread {\n            context?.let {\n                Toast.makeText(it, \"Done\", Toast.LENGTH_SHORT).show()\n            }\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_6.kt"
+  },
+  {
+    "code": "class Data1ViewModel(\n    private val repository: Data1Repository\n) : ViewModel() {\n\n    private val _users = MutableStateFlow<UiState<List<Data1>>>(UiState.Loading)\n    val users: StateFlow<UiState<List<Data1>>> = _users.asStateFlow()\n\n    fun loadData1s() {\n        viewModelScope.launch {\n            _users.value = UiState.Loading\n            repository.getData1s()\n                .onSuccess { _users.value = UiState.Success(it) }\n                .onFailure { _users.value = UiState.Error(it.message) }\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_3.kt"
+  },
+  {
+    "code": "class Data1Adapter(\n    private var users: List<Data1>\n) : RecyclerView.Adapter<Data1Adapter.Data1ViewHolder>() {\n\n    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Data1ViewHolder {\n        val binding = Record1Data1Binding.inflate(\n            LayoutInflater.from(parent.context), parent, false\n        )\n        return Data1ViewHolder(binding)\n    }\n\n    override fun onBindViewHolder(holder: Data1ViewHolder, position: Int) {\n        holder.bind(users[position])\n    }\n\n    override fun getRecord1Count() = users.size\n\n    fun updateData1s(newData1s: List<Data1>) {\n        users = newData1s\n        notifyDataSetChanged()\n    }\n\n    class Data1ViewHolder(private val binding: Record1Data1Binding) :\n        RecyclerView.ViewHolder(binding.root) {\n\n        fun bind(user: Data1) {\n            binding.tvName.text = user.name\n            binding.tvEmail.text = user.email\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_18.kt"
+  },
+  {
+    "code": "class Data3Fragment : Fragment() {\n\n    private var _binding: FragmentData3Binding? = null\n    private val binding get() = _binding!!\n\n    override fun onCreateView(\n        inflater: LayoutInflater,\n        container: ViewGroup?,\n        savedInstanceState: Bundle?\n    ): View {\n        _binding = FragmentData3Binding.inflate(inflater, container, false)\n        return binding.root\n    }\n\n    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {\n        super.onViewCreated(view, savedInstanceState)\n        binding.btnSave.setOnClickListener {\n            saveData()\n        }\n    }\n\n    override fun onDestroyView() {\n        super.onDestroyView()\n        _binding = null\n    }\n\n    private fun saveData() {\n        // Implementation\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_15.kt"
+  },
+  {
+    "code": "class BadActivity : AppCompatActivity() {\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_bad)\n\n        findViewById<Button>(R.id.btn1).setOnClickListener { doAction1() }\n        findViewById<Button>(R.id.btn2).setOnClickListener { doAction2() }\n        findViewById<Button>(R.id.btn3).setOnClickListener { doAction3() }\n        findViewById<Button>(R.id.btn4).setOnClickListener { doAction4() }\n        findViewById<Button>(R.id.btn5).setOnClickListener { doAction5() }\n        findViewById<TextView>(R.id.text1).text = \"Hello\"\n        findViewById<TextView>(R.id.text2).text = \"World\"\n        findViewById<EditText>(R.id.edit1).hint = \"Enter\"\n    }\n\n    fun doAction1() {\n        findViewById<TextView>(R.id.result).text = \"Action 1\"\n    }\n\n    fun doAction2() {\n        findViewById<TextView>(R.id.result).text = \"Action 2\"\n    }\n\n    fun doAction3() {\n        findViewById<TextView>(R.id.result).text = \"Action 3\"\n    }\n\n    fun doAction4() {\n        findViewById<TextView>(R.id.result).text = \"Action 4\"\n    }\n\n    fun doAction5() {\n        findViewById<TextView>(R.id.result).text = \"Action 5\"\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_12.kt"
+  },
+  {
+    "code": "class BadAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {\n\n    var items = mutableListOf<String>()\n\n    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {\n        val tv = TextView(parent.context)\n        tv.textSize = 16f\n        tv.setPadding(16, 16, 16, 16)\n        return object : RecyclerView.ViewHolder(tv) {}\n    }\n\n    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {\n        val textView = holder.itemView as TextView\n        textView.text = items[position]\n        textView.setOnClickListener {\n            items.removeAt(position)\n            notifyDataSetChanged()\n            Toast.makeText(it.context, \"Removed\", Toast.LENGTH_SHORT).show()\n        }\n    }\n\n    override fun getRecord2Count() = items.size\n\n    fun addRecord2(item: String) {\n        items.add(item)\n        notifyDataSetChanged()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_16.kt"
+  },
+  {
+    "code": "class ProductViewModel : ViewModel() {\n\n    val products = MutableLiveData<List<Product>>()\n    private val repository = ProductRepository()\n\n    fun fetchProducts() {\n        viewModelScope.launch {\n            val result = repository.getProducts()\n            products.postValue(result)\n        }\n    }\n\n    fun deleteProduct(id: String) {\n        viewModelScope.launch {\n            repository.delete(id)\n            fetchProducts()\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_1.kt"
+  },
+  {
+    "code": "class Data2Adapter(\n    private var users: List<Data2>\n) : RecyclerView.Adapter<Data2Adapter.Data2ViewHolder>() {\n\n    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Data2ViewHolder {\n        val binding = Record2Data2Binding.inflate(\n            LayoutInflater.from(parent.context), parent, false\n        )\n        return Data2ViewHolder(binding)\n    }\n\n    override fun onBindViewHolder(holder: Data2ViewHolder, position: Int) {\n        holder.bind(users[position])\n    }\n\n    override fun getRecord2Count() = users.size\n\n    fun updateData2s(newData2s: List<Data2>) {\n        users = newData2s\n        notifyDataSetChanged()\n    }\n\n    class Data2ViewHolder(private val binding: Record2Data2Binding) :\n        RecyclerView.ViewHolder(binding.root) {\n\n        fun bind(user: Data2) {\n            binding.tvName.text = user.name\n            binding.tvEmail.text = user.email\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_19.kt"
+  },
+  {
+    "code": "class Data3Adapter(\n    private var users: List<Data3>\n) : RecyclerView.Adapter<Data3Adapter.Data3ViewHolder>() {\n\n    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Data3ViewHolder {\n        val binding = Record3Data3Binding.inflate(\n            LayoutInflater.from(parent.context), parent, false\n        )\n        return Data3ViewHolder(binding)\n    }\n\n    override fun onBindViewHolder(holder: Data3ViewHolder, position: Int) {\n        holder.bind(users[position])\n    }\n\n    override fun getRecord3Count() = users.size\n\n    fun updateData3s(newData3s: List<Data3>) {\n        users = newData3s\n        notifyDataSetChanged()\n    }\n\n    class Data3ViewHolder(private val binding: Record3Data3Binding) :\n        RecyclerView.ViewHolder(binding.root) {\n\n        fun bind(user: Data3) {\n            binding.tvName.text = user.name\n            binding.tvEmail.text = user.email\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_20.kt"
+  },
+  {
+    "code": "class BadActivity : AppCompatActivity() {\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_bad)\n\n        findViewById<Button>(R.id.btn1).setOnClickListener { doAction1() }\n        findViewById<Button>(R.id.btn2).setOnClickListener { doAction2() }\n        findViewById<Button>(R.id.btn3).setOnClickListener { doAction3() }\n        findViewById<Button>(R.id.btn4).setOnClickListener { doAction4() }\n        findViewById<Button>(R.id.btn5).setOnClickListener { doAction5() }\n        findViewById<TextView>(R.id.text1).text = \"Hello\"\n        findViewById<TextView>(R.id.text2).text = \"World\"\n        findViewById<EditText>(R.id.edit1).hint = \"Enter\"\n    }\n\n    fun doAction1() {\n        findViewById<TextView>(R.id.result).text = \"Action 1\"\n    }\n\n    fun doAction2() {\n        findViewById<TextView>(R.id.result).text = \"Action 2\"\n    }\n\n    fun doAction3() {\n        findViewById<TextView>(R.id.result).text = \"Action 3\"\n    }\n\n    fun doAction4() {\n        findViewById<TextView>(R.id.result).text = \"Action 4\"\n    }\n\n    fun doAction5() {\n        findViewById<TextView>(R.id.result).text = \"Action 5\"\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_8.kt"
+  },
+  {
+    "code": "@Composable\nfun Data1ListScreen(\n    viewModel: Data1ViewModel = hiltViewModel()\n) {\n    val uiState by viewModel.users.collectAsStateWithLifecycle()\n\n    when (val state = uiState) {\n        is UiState.Loading -> LoadingIndicator()\n        is UiState.Success -> Data1List(users = state.data)\n        is UiState.Error -> ErrorMessage(message = state.message)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_18.kt"
+  },
+  {
+    "code": "@Composable\nfun Data2ListScreen(\n    viewModel: Data2ViewModel = hiltViewModel()\n) {\n    val uiState by viewModel.users.collectAsStateWithLifecycle()\n\n    when (val state = uiState) {\n        is UiState.Loading -> LoadingIndicator()\n        is UiState.Success -> Data2List(users = state.data)\n        is UiState.Error -> ErrorMessage(message = state.message)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_19.kt"
+  },
+  {
+    "code": "class ApiClient {\n\n    fun fetchData4s(): List<Data4> {\n        val response = httpClient.get(\"https://api.example.com/users\")\n        val json = response.body()\n        return parseData4s(json)\n    }\n\n    fun parseData4s(json: String): List<Data4> {\n        val users = mutableListOf<Data4>()\n        val jsonArray = JSONArray(json)\n        for (i in 0 until jsonArray.length()) {\n            val obj = jsonArray.getJSONObject(i)\n            users.add(Data4(\n                obj.getString(\"id\"),\n                obj.getString(\"name\"),\n                obj.getString(\"email\")\n            ))\n        }\n        return users\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_24.kt"
+  },
+  {
+    "code": "class MainActivity : AppCompatActivity() {\n\n    private lateinit var binding: ActivityMainBinding\n    private val viewModel: MainViewModel by viewModels()\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        binding = ActivityMainBinding.inflate(layoutInflater)\n        setContentView(binding.root)\n\n        setupViews()\n        observeViewModel()\n    }\n\n    private fun setupViews() {\n        binding.btnRefresh.setOnClickListener {\n            viewModel.loadData()\n        }\n    }\n\n    private fun observeViewModel() {\n        viewModel.data.observe(this) { data ->\n            binding.textView.text = data.toString()\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_8.kt"
+  },
+  {
+    "code": "class CallbackHell {\n\n    fun loadData(callback: (String) -> Unit) {\n        fetchFromServer { result1 ->\n            parseResult(result1) { result2 ->\n                validateData(result2) { result3 ->\n                    saveToDatabase(result3) { result4 ->\n                        updateCache(result4) { result5 ->\n                            notifyObservers(result5) { result6 ->\n                                callback(result6)\n                            }\n                        }\n                    }\n                }\n            }\n        }\n    }\n\n    private fun fetchFromServer(callback: (String) -> Unit) {\n        callback(\"data\")\n    }\n\n    private fun parseResult(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun validateData(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun saveToDatabase(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun updateCache(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun notifyObservers(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_21.kt"
+  },
+  {
+    "code": "class CallbackHell {\n\n    fun loadData(callback: (String) -> Unit) {\n        fetchFromServer { result1 ->\n            parseResult(result1) { result2 ->\n                validateData(result2) { result3 ->\n                    saveToDatabase(result3) { result4 ->\n                        updateCache(result4) { result5 ->\n                            notifyObservers(result5) { result6 ->\n                                callback(result6)\n                            }\n                        }\n                    }\n                }\n            }\n        }\n    }\n\n    private fun fetchFromServer(callback: (String) -> Unit) {\n        callback(\"data\")\n    }\n\n    private fun parseResult(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun validateData(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun saveToDatabase(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun updateCache(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun notifyObservers(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_20.kt"
+  },
+  {
+    "code": "class ProductViewModel : ViewModel() {\n\n    val entity0s = MutableLiveData<List<Product>>()\n    private val repository = ProductRepository()\n\n    fun fetchProducts() {\n        viewModelScope.launch {\n            val result = repository.getProducts()\n            entity0s.postValue(result)\n        }\n    }\n\n    fun deleteProduct(id: String) {\n        viewModelScope.launch {\n            repository.delete(id)\n            fetchProducts()\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_2.kt"
+  },
+  {
+    "code": "class FormActivity : AppCompatActivity() {\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_form)\n\n        val editName = findViewById<EditText>(R.id.editName)\n        val editEmail = findViewById<EditText>(R.id.editEmail)\n        val editPhone = findViewById<EditText>(R.id.editPhone)\n        val btnSubmit = findViewById<Button>(R.id.btnSubmit)\n        val btnCancel = findViewById<Button>(R.id.btnCancel)\n\n        btnSubmit.setOnClickListener {\n            val name = editName.text.toString()\n            val email = editEmail.text.toString()\n            val phone = editPhone.text.toString()\n\n            if (name.isNotEmpty() && email.isNotEmpty()) {\n                submitForm(name, email, phone)\n            }\n        }\n\n        btnCancel.setOnClickListener {\n            finish()\n        }\n    }\n\n    private fun submitForm(name: String, email: String, phone: String) {\n        // Submit logic\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_7.kt"
+  },
+  {
+    "code": "class LeakyActivity : AppCompatActivity() {\n\n    companion object {\n        var context: Context? = null\n        lateinit var instance: LeakyActivity\n        var sharedData = HashMap<String, Any>()\n    }\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        context = this\n        instance = this\n\n        val btn = findViewById<Button>(R.id.button)\n        btn.setOnClickListener {\n            GlobalScope.launch {\n                doBackgroundWork()\n            }\n        }\n    }\n\n    private fun doBackgroundWork() {\n        Thread.sleep(5000)\n        runOnUiThread {\n            context?.let {\n                Toast.makeText(it, \"Done\", Toast.LENGTH_SHORT).show()\n            }\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_1.kt"
+  },
+  {
+    "code": "sealed class UiState<out T> {\n    object Loading : UiState<Nothing>()\n    data class Success<T>(val data: T) : UiState<T>()\n    data class Error(val message: String?) : UiState<Nothing>()\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_21.kt"
+  },
+  {
+    "code": "@Composable\nfun Data0ListScreen(\n    viewModel: Data0ViewModel = hiltViewModel()\n) {\n    val uiState by viewModel.users.collectAsStateWithLifecycle()\n\n    when (val state = uiState) {\n        is UiState.Loading -> LoadingIndicator()\n        is UiState.Success -> Data0List(users = state.data)\n        is UiState.Error -> ErrorMessage(message = state.message)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_17.kt"
+  },
+  {
+    "code": "class GetUserUseCase @Inject constructor(\n    private val repository: UserRepository,\n    private val dispatcher: CoroutineDispatcher = Dispatchers.IO\n) {\n    suspend operator fun invoke(userId: String): Result<User> = withContext(dispatcher) {\n        repository.getUserById(userId)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_6.kt"
+  },
+  {
+    "code": "class FormActivity : AppCompatActivity() {\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_form)\n\n        val editName = findViewById<EditText>(R.id.editName)\n        val editEmail = findViewById<EditText>(R.id.editEmail)\n        val editPhone = findViewById<EditText>(R.id.editPhone)\n        val btnSubmit = findViewById<Button>(R.id.btnSubmit)\n        val btnCancel = findViewById<Button>(R.id.btnCancel)\n\n        btnSubmit.setOnClickListener {\n            val name = editName.text.toString()\n            val email = editEmail.text.toString()\n            val phone = editPhone.text.toString()\n\n            if (name.isNotEmpty() && email.isNotEmpty()) {\n                submitForm(name, email, phone)\n            }\n        }\n\n        btnCancel.setOnClickListener {\n            finish()\n        }\n    }\n\n    private fun submitForm(name: String, email: String, phone: String) {\n        // Submit logic\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_10.kt"
+  },
+  {
+    "code": "class BadActivity : AppCompatActivity() {\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_bad)\n\n        findViewById<Button>(R.id.btn1).setOnClickListener { doAction1() }\n        findViewById<Button>(R.id.btn2).setOnClickListener { doAction2() }\n        findViewById<Button>(R.id.btn3).setOnClickListener { doAction3() }\n        findViewById<Button>(R.id.btn4).setOnClickListener { doAction4() }\n        findViewById<Button>(R.id.btn5).setOnClickListener { doAction5() }\n        findViewById<TextView>(R.id.text1).text = \"Hello\"\n        findViewById<TextView>(R.id.text2).text = \"World\"\n        findViewById<EditText>(R.id.edit1).hint = \"Enter\"\n    }\n\n    fun doAction1() {\n        findViewById<TextView>(R.id.result).text = \"Action 1\"\n    }\n\n    fun doAction2() {\n        findViewById<TextView>(R.id.result).text = \"Action 2\"\n    }\n\n    fun doAction3() {\n        findViewById<TextView>(R.id.result).text = \"Action 3\"\n    }\n\n    fun doAction4() {\n        findViewById<TextView>(R.id.result).text = \"Action 4\"\n    }\n\n    fun doAction5() {\n        findViewById<TextView>(R.id.result).text = \"Action 5\"\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_11.kt"
+  },
+  {
+    "code": "class Data1Fragment : Fragment() {\n\n    private var _binding: FragmentData1Binding? = null\n    private val binding get() = _binding!!\n\n    override fun onCreateView(\n        inflater: LayoutInflater,\n        container: ViewGroup?,\n        savedInstanceState: Bundle?\n    ): View {\n        _binding = FragmentData1Binding.inflate(inflater, container, false)\n        return binding.root\n    }\n\n    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {\n        super.onViewCreated(view, savedInstanceState)\n        binding.btnSave.setOnClickListener {\n            saveData()\n        }\n    }\n\n    override fun onDestroyView() {\n        super.onDestroyView()\n        _binding = null\n    }\n\n    private fun saveData() {\n        // Implementation\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_13.kt"
+  },
+  {
+    "code": "class ProductViewModel : ViewModel() {\n\n    val entity1s = MutableLiveData<List<Product>>()\n    private val repository = ProductRepository()\n\n    fun fetchProducts() {\n        viewModelScope.launch {\n            val result = repository.getProducts()\n            entity1s.postValue(result)\n        }\n    }\n\n    fun deleteProduct(id: String) {\n        viewModelScope.launch {\n            repository.delete(id)\n            fetchProducts()\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_3.kt"
+  },
+  {
+    "code": "class BadActivity : AppCompatActivity() {\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_bad)\n\n        findViewById<Button>(R.id.btn1).setOnClickListener { doAction1() }\n        findViewById<Button>(R.id.btn2).setOnClickListener { doAction2() }\n        findViewById<Button>(R.id.btn3).setOnClickListener { doAction3() }\n        findViewById<Button>(R.id.btn4).setOnClickListener { doAction4() }\n        findViewById<Button>(R.id.btn5).setOnClickListener { doAction5() }\n        findViewById<TextView>(R.id.text1).text = \"Hello\"\n        findViewById<TextView>(R.id.text2).text = \"World\"\n        findViewById<EditText>(R.id.edit1).hint = \"Enter\"\n    }\n\n    fun doAction1() {\n        findViewById<TextView>(R.id.result).text = \"Action 1\"\n    }\n\n    fun doAction2() {\n        findViewById<TextView>(R.id.result).text = \"Action 2\"\n    }\n\n    fun doAction3() {\n        findViewById<TextView>(R.id.result).text = \"Action 3\"\n    }\n\n    fun doAction4() {\n        findViewById<TextView>(R.id.result).text = \"Action 4\"\n    }\n\n    fun doAction5() {\n        findViewById<TextView>(R.id.result).text = \"Action 5\"\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_7.kt"
+  },
+  {
+    "code": "class LeakyActivity : AppCompatActivity() {\n\n    companion object {\n        var context: Context? = null\n        lateinit var instance: LeakyActivity\n        var sharedData = HashMap<String, Any>()\n    }\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        context = this\n        instance = this\n\n        val btn = findViewById<Button>(R.id.button)\n        btn.setOnClickListener {\n            GlobalScope.launch {\n                doBackgroundWork()\n            }\n        }\n    }\n\n    private fun doBackgroundWork() {\n        Thread.sleep(5000)\n        runOnUiThread {\n            context?.let {\n                Toast.makeText(it, \"Done\", Toast.LENGTH_SHORT).show()\n            }\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_5.kt"
+  },
+  {
+    "code": "class DataActivity : AppCompatActivity() {\n\n    var dataList = ArrayList<String>()\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_data)\n\n        Thread {\n            val data = loadDataFromNetwork()\n            runOnUiThread {\n                dataList.addAll(data)\n                updateUI()\n            }\n        }.start()\n    }\n\n    private fun loadDataFromNetwork(): List<String> {\n        Thread.sleep(2000)\n        return listOf(\"Record41\", \"Record42\", \"Record43\")\n    }\n\n    private fun updateUI() {\n        val textView = findViewById<TextView>(R.id.textView)\n        textView.text = dataList.joinToString()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_6.kt"
+  },
+  {
+    "code": "class LeakyActivity : AppCompatActivity() {\n\n    companion object {\n        var context: Context? = null\n        lateinit var instance: LeakyActivity\n        var sharedData = HashMap<String, Any>()\n    }\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        context = this\n        instance = this\n\n        val btn = findViewById<Button>(R.id.button)\n        btn.setOnClickListener {\n            GlobalScope.launch {\n                doBackgroundWork()\n            }\n        }\n    }\n\n    private fun doBackgroundWork() {\n        Thread.sleep(5000)\n        runOnUiThread {\n            context?.let {\n                Toast.makeText(it, \"Done\", Toast.LENGTH_SHORT).show()\n            }\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_2.kt"
+  },
+  {
+    "code": "class Data0RepositoryImpl @Inject constructor(\n    private val remoteDataSource: Data0RemoteDataSource,\n    private val localDataSource: Data0LocalDataSource\n) : Data0Repository {\n\n    override suspend fun getData0s(): Result<List<Data0>> = try {\n        val users = remoteDataSource.fetchData0s()\n        localDataSource.saveData0s(users)\n        Result.success(users)\n    } catch (e: Exception) {\n        val cachedData0s = localDataSource.getData0s()\n        if (cachedData0s.isNotEmpty()) {\n            Result.success(cachedData0s)\n        } else {\n            Result.failure(e)\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_12.kt"
+  },
+  {
+    "code": "class MainActivity : AppCompatActivity() {\n\n    private lateinit var binding: ActivityMainBinding\n    private val viewModel: MainViewModel by viewModels()\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        binding = ActivityMainBinding.inflate(layoutInflater)\n        setContentView(binding.root)\n\n        setupViews()\n        observeViewModel()\n    }\n\n    private fun setupViews() {\n        binding.btnRefresh.setOnClickListener {\n            viewModel.loadData()\n        }\n    }\n\n    private fun observeViewModel() {\n        viewModel.data.observe(this) { data ->\n            binding.textView.text = data.toString()\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_7.kt"
+  },
+  {
+    "code": "class LeakyActivity : AppCompatActivity() {\n\n    companion object {\n        var context: Context? = null\n        lateinit var instance: LeakyActivity\n        var sharedData = HashMap<String, Any>()\n    }\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        context = this\n        instance = this\n\n        val btn = findViewById<Button>(R.id.button)\n        btn.setOnClickListener {\n            GlobalScope.launch {\n                doBackgroundWork()\n            }\n        }\n    }\n\n    private fun doBackgroundWork() {\n        Thread.sleep(5000)\n        runOnUiThread {\n            context?.let {\n                Toast.makeText(it, \"Done\", Toast.LENGTH_SHORT).show()\n            }\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_3.kt"
+  },
+  {
+    "code": "class ValidationUtils {\n\n    fun validateInput(input: String): Boolean {\n        var isValid = false\n        if (input != null) {\n            if (input.length > 0) {\n                if (input.length < 100) {\n                    if (input.matches(Regex(\"[a-zA-Z0-9]+\"))) {\n                        if (!input.startsWith(\"_\")) {\n                            if (!input.endsWith(\"_\")) {\n                                isValid = true\n                            }\n                        }\n                    }\n                }\n            }\n        }\n        return isValid\n    }\n\n    fun processData(data: List<String>): List<String> {\n        val result = mutableListOf<String>()\n        for (i in data.indices) {\n            for (j in data.indices) {\n                if (i != j) {\n                    if (data[i].length > data[j].length) {\n                        result.add(data[i])\n                    }\n                }\n            }\n        }\n        return result.distinct()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_17.kt"
+  },
+  {
+    "code": "class ApiClient {\n\n    fun fetchUsers(): List<User> {\n        val response = httpClient.get(\"https://api.example.com/users\")\n        val json = response.body()\n        return parseUsers(json)\n    }\n\n    fun parseUsers(json: String): List<User> {\n        val users = mutableListOf<User>()\n        val jsonArray = JSONArray(json)\n        for (i in 0 until jsonArray.length()) {\n            val obj = jsonArray.getJSONObject(i)\n            users.add(User(\n                obj.getString(\"id\"),\n                obj.getString(\"name\"),\n                obj.getString(\"email\")\n            ))\n        }\n        return users\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_19.kt"
+  },
+  {
+    "code": "class UserFragment : Fragment() {\n\n    private var _binding: FragmentUserBinding? = null\n    private val binding get() = _binding!!\n\n    override fun onCreateView(\n        inflater: LayoutInflater,\n        container: ViewGroup?,\n        savedInstanceState: Bundle?\n    ): View {\n        _binding = FragmentUserBinding.inflate(inflater, container, false)\n        return binding.root\n    }\n\n    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {\n        super.onViewCreated(view, savedInstanceState)\n        binding.btnSave.setOnClickListener {\n            saveData()\n        }\n    }\n\n    override fun onDestroyView() {\n        super.onDestroyView()\n        _binding = null\n    }\n\n    private fun saveData() {\n        // Implementation\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_11.kt"
+  },
+  {
+    "code": "class Data1RepositoryImpl @Inject constructor(\n    private val remoteDataSource: Data1RemoteDataSource,\n    private val localDataSource: Data1LocalDataSource\n) : Data1Repository {\n\n    override suspend fun getData1s(): Result<List<Data1>> = try {\n        val users = remoteDataSource.fetchData1s()\n        localDataSource.saveData1s(users)\n        Result.success(users)\n    } catch (e: Exception) {\n        val cachedData1s = localDataSource.getData1s()\n        if (cachedData1s.isNotEmpty()) {\n            Result.success(cachedData1s)\n        } else {\n            Result.failure(e)\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_13.kt"
+  },
+  {
+    "code": "class UserRepositoryImpl @Inject constructor(\n    private val remoteDataSource: UserRemoteDataSource,\n    private val localDataSource: UserLocalDataSource\n) : UserRepository {\n\n    override suspend fun getUsers(): Result<List<User>> = try {\n        val users = remoteDataSource.fetchUsers()\n        localDataSource.saveUsers(users)\n        Result.success(users)\n    } catch (e: Exception) {\n        val cachedUsers = localDataSource.getUsers()\n        if (cachedUsers.isNotEmpty()) {\n            Result.success(cachedUsers)\n        } else {\n            Result.failure(e)\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_11.kt"
+  },
+  {
+    "code": "class DataActivity : AppCompatActivity() {\n\n    var dataList = ArrayList<String>()\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_data)\n\n        Thread {\n            val data = loadDataFromNetwork()\n            runOnUiThread {\n                dataList.addAll(data)\n                updateUI()\n            }\n        }.start()\n    }\n\n    private fun loadDataFromNetwork(): List<String> {\n        Thread.sleep(2000)\n        return listOf(\"Record31\", \"Record32\", \"Record33\")\n    }\n\n    private fun updateUI() {\n        val textView = findViewById<TextView>(R.id.textView)\n        textView.text = dataList.joinToString()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_5.kt"
+  },
+  {
+    "code": "class UserAdapter(\n    private var users: List<User>\n) : RecyclerView.Adapter<UserAdapter.UserViewHolder>() {\n\n    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UserViewHolder {\n        val binding = ItemUserBinding.inflate(\n            LayoutInflater.from(parent.context), parent, false\n        )\n        return UserViewHolder(binding)\n    }\n\n    override fun onBindViewHolder(holder: UserViewHolder, position: Int) {\n        holder.bind(users[position])\n    }\n\n    override fun getItemCount() = users.size\n\n    fun updateUsers(newUsers: List<User>) {\n        users = newUsers\n        notifyDataSetChanged()\n    }\n\n    class UserViewHolder(private val binding: ItemUserBinding) :\n        RecyclerView.ViewHolder(binding.root) {\n\n        fun bind(user: User) {\n            binding.tvName.text = user.name\n            binding.tvEmail.text = user.email\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_16.kt"
+  },
+  {
+    "code": "class ApiClient {\n\n    fun fetchData2s(): List<Data2> {\n        val response = httpClient.get(\"https://api.example.com/users\")\n        val json = response.body()\n        return parseData2s(json)\n    }\n\n    fun parseData2s(json: String): List<Data2> {\n        val users = mutableListOf<Data2>()\n        val jsonArray = JSONArray(json)\n        for (i in 0 until jsonArray.length()) {\n            val obj = jsonArray.getJSONObject(i)\n            users.add(Data2(\n                obj.getString(\"id\"),\n                obj.getString(\"name\"),\n                obj.getString(\"email\")\n            ))\n        }\n        return users\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_22.kt"
+  },
+  {
+    "code": "class MainActivity : AppCompatActivity() {\n\n    private lateinit var binding: ActivityMainBinding\n    private val viewModel: MainViewModel by viewModels()\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        binding = ActivityMainBinding.inflate(layoutInflater)\n        setContentView(binding.root)\n\n        setupViews()\n        observeViewModel()\n    }\n\n    private fun setupViews() {\n        binding.btnRefresh.setOnClickListener {\n            viewModel.loadData()\n        }\n    }\n\n    private fun observeViewModel() {\n        viewModel.data.observe(this) { data ->\n            binding.textView.text = data.toString()\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_6.kt"
+  },
+  {
+    "code": "class DataActivity : AppCompatActivity() {\n\n    var dataList = ArrayList<String>()\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_data)\n\n        Thread {\n            val data = loadDataFromNetwork()\n            runOnUiThread {\n                dataList.addAll(data)\n                updateUI()\n            }\n        }.start()\n    }\n\n    private fun loadDataFromNetwork(): List<String> {\n        Thread.sleep(2000)\n        return listOf(\"Record01\", \"Record02\", \"Record03\")\n    }\n\n    private fun updateUI() {\n        val textView = findViewById<TextView>(R.id.textView)\n        textView.text = dataList.joinToString()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_2.kt"
+  },
+  {
+    "code": "class DataActivity : AppCompatActivity() {\n\n    var dataList = ArrayList<String>()\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_data)\n\n        Thread {\n            val data = loadDataFromNetwork()\n            runOnUiThread {\n                dataList.addAll(data)\n                updateUI()\n            }\n        }.start()\n    }\n\n    private fun loadDataFromNetwork(): List<String> {\n        Thread.sleep(2000)\n        return listOf(\"Item1\", \"Item2\", \"Item3\")\n    }\n\n    private fun updateUI() {\n        val textView = findViewById<TextView>(R.id.textView)\n        textView.text = dataList.joinToString()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_1.kt"
+  },
+  {
+    "code": "class BadAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {\n\n    var items = mutableListOf<String>()\n\n    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {\n        val tv = TextView(parent.context)\n        tv.textSize = 16f\n        tv.setPadding(16, 16, 16, 16)\n        return object : RecyclerView.ViewHolder(tv) {}\n    }\n\n    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {\n        val textView = holder.itemView as TextView\n        textView.text = items[position]\n        textView.setOnClickListener {\n            items.removeAt(position)\n            notifyDataSetChanged()\n            Toast.makeText(it.context, \"Removed\", Toast.LENGTH_SHORT).show()\n        }\n    }\n\n    override fun getRecord1Count() = items.size\n\n    fun addRecord1(item: String) {\n        items.add(item)\n        notifyDataSetChanged()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_15.kt"
+  },
+  {
+    "code": "sealed class UiState<out T> {\n    object Loading : UiState<Nothing>()\n    data class Success<T>(val data: T) : UiState<T>()\n    data class Error(val message: String?) : UiState<Nothing>()\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_24.kt"
+  },
+  {
+    "code": "class BadAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {\n\n    var items = mutableListOf<String>()\n\n    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {\n        val tv = TextView(parent.context)\n        tv.textSize = 16f\n        tv.setPadding(16, 16, 16, 16)\n        return object : RecyclerView.ViewHolder(tv) {}\n    }\n\n    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {\n        val textView = holder.itemView as TextView\n        textView.text = items[position]\n        textView.setOnClickListener {\n            items.removeAt(position)\n            notifyDataSetChanged()\n            Toast.makeText(it.context, \"Removed\", Toast.LENGTH_SHORT).show()\n        }\n    }\n\n    override fun getRecord4Count() = items.size\n\n    fun addRecord4(item: String) {\n        items.add(item)\n        notifyDataSetChanged()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_18.kt"
+  },
+  {
+    "code": "class Data2Fragment : Fragment() {\n\n    private var _binding: FragmentData2Binding? = null\n    private val binding get() = _binding!!\n\n    override fun onCreateView(\n        inflater: LayoutInflater,\n        container: ViewGroup?,\n        savedInstanceState: Bundle?\n    ): View {\n        _binding = FragmentData2Binding.inflate(inflater, container, false)\n        return binding.root\n    }\n\n    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {\n        super.onViewCreated(view, savedInstanceState)\n        binding.btnSave.setOnClickListener {\n            saveData()\n        }\n    }\n\n    override fun onDestroyView() {\n        super.onDestroyView()\n        _binding = null\n    }\n\n    private fun saveData() {\n        // Implementation\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_14.kt"
+  },
+  {
+    "code": "class FormActivity : AppCompatActivity() {\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_form)\n\n        val editName = findViewById<EditText>(R.id.editName)\n        val editEmail = findViewById<EditText>(R.id.editEmail)\n        val editPhone = findViewById<EditText>(R.id.editPhone)\n        val btnSubmit = findViewById<Button>(R.id.btnSubmit)\n        val btnCancel = findViewById<Button>(R.id.btnCancel)\n\n        btnSubmit.setOnClickListener {\n            val name = editName.text.toString()\n            val email = editEmail.text.toString()\n            val phone = editPhone.text.toString()\n\n            if (name.isNotEmpty() && email.isNotEmpty()) {\n                submitForm(name, email, phone)\n            }\n        }\n\n        btnCancel.setOnClickListener {\n            finish()\n        }\n    }\n\n    private fun submitForm(name: String, email: String, phone: String) {\n        // Submit logic\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_12.kt"
+  },
+  {
+    "code": "class FormActivity : AppCompatActivity() {\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_form)\n\n        val editName = findViewById<EditText>(R.id.editName)\n        val editEmail = findViewById<EditText>(R.id.editEmail)\n        val editPhone = findViewById<EditText>(R.id.editPhone)\n        val btnSubmit = findViewById<Button>(R.id.btnSubmit)\n        val btnCancel = findViewById<Button>(R.id.btnCancel)\n\n        btnSubmit.setOnClickListener {\n            val name = editName.text.toString()\n            val email = editEmail.text.toString()\n            val phone = editPhone.text.toString()\n\n            if (name.isNotEmpty() && email.isNotEmpty()) {\n                submitForm(name, email, phone)\n            }\n        }\n\n        btnCancel.setOnClickListener {\n            finish()\n        }\n    }\n\n    private fun submitForm(name: String, email: String, phone: String) {\n        // Submit logic\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_11.kt"
+  },
+  {
+    "code": "class ApiClient {\n\n    fun fetchData1s(): List<Data1> {\n        val response = httpClient.get(\"https://api.example.com/users\")\n        val json = response.body()\n        return parseData1s(json)\n    }\n\n    fun parseData1s(json: String): List<Data1> {\n        val users = mutableListOf<Data1>()\n        val jsonArray = JSONArray(json)\n        for (i in 0 until jsonArray.length()) {\n            val obj = jsonArray.getJSONObject(i)\n            users.add(Data1(\n                obj.getString(\"id\"),\n                obj.getString(\"name\"),\n                obj.getString(\"email\")\n            ))\n        }\n        return users\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_21.kt"
+  },
+  {
+    "code": "class LeakyActivity : AppCompatActivity() {\n\n    companion object {\n        var context: Context? = null\n        lateinit var instance: LeakyActivity\n        var sharedData = HashMap<String, Any>()\n    }\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        context = this\n        instance = this\n\n        val btn = findViewById<Button>(R.id.button)\n        btn.setOnClickListener {\n            GlobalScope.launch {\n                doBackgroundWork()\n            }\n        }\n    }\n\n    private fun doBackgroundWork() {\n        Thread.sleep(5000)\n        runOnUiThread {\n            context?.let {\n                Toast.makeText(it, \"Done\", Toast.LENGTH_SHORT).show()\n            }\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_4.kt"
+  },
+  {
+    "code": "class BadActivity : AppCompatActivity() {\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_bad)\n\n        findViewById<Button>(R.id.btn1).setOnClickListener { doAction1() }\n        findViewById<Button>(R.id.btn2).setOnClickListener { doAction2() }\n        findViewById<Button>(R.id.btn3).setOnClickListener { doAction3() }\n        findViewById<Button>(R.id.btn4).setOnClickListener { doAction4() }\n        findViewById<Button>(R.id.btn5).setOnClickListener { doAction5() }\n        findViewById<TextView>(R.id.text1).text = \"Hello\"\n        findViewById<TextView>(R.id.text2).text = \"World\"\n        findViewById<EditText>(R.id.edit1).hint = \"Enter\"\n    }\n\n    fun doAction1() {\n        findViewById<TextView>(R.id.result).text = \"Action 1\"\n    }\n\n    fun doAction2() {\n        findViewById<TextView>(R.id.result).text = \"Action 2\"\n    }\n\n    fun doAction3() {\n        findViewById<TextView>(R.id.result).text = \"Action 3\"\n    }\n\n    fun doAction4() {\n        findViewById<TextView>(R.id.result).text = \"Action 4\"\n    }\n\n    fun doAction5() {\n        findViewById<TextView>(R.id.result).text = \"Action 5\"\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_9.kt"
+  },
+  {
+    "code": "class ValidationUtils {\n\n    fun validateInput(input: String): Boolean {\n        var isValid = false\n        if (input != null) {\n            if (input.length > 0) {\n                if (input.length < 100) {\n                    if (input.matches(Regex(\"[a-zA-Z0-9]+\"))) {\n                        if (!input.startsWith(\"_\")) {\n                            if (!input.endsWith(\"_\")) {\n                                isValid = true\n                            }\n                        }\n                    }\n                }\n            }\n        }\n        return isValid\n    }\n\n    fun processData(data: List<String>): List<String> {\n        val result = mutableListOf<String>()\n        for (i in data.indices) {\n            for (j in data.indices) {\n                if (i != j) {\n                    if (data[i].length > data[j].length) {\n                        result.add(data[i])\n                    }\n                }\n            }\n        }\n        return result.distinct()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_15.kt"
+  },
+  {
+    "code": "class Data3ViewModel(\n    private val repository: Data3Repository\n) : ViewModel() {\n\n    private val _users = MutableStateFlow<UiState<List<Data3>>>(UiState.Loading)\n    val users: StateFlow<UiState<List<Data3>>> = _users.asStateFlow()\n\n    fun loadData3s() {\n        viewModelScope.launch {\n            _users.value = UiState.Loading\n            repository.getData3s()\n                .onSuccess { _users.value = UiState.Success(it) }\n                .onFailure { _users.value = UiState.Error(it.message) }\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_5.kt"
+  },
+  {
+    "code": "class Data2ViewModel(\n    private val repository: Data2Repository\n) : ViewModel() {\n\n    private val _users = MutableStateFlow<UiState<List<Data2>>>(UiState.Loading)\n    val users: StateFlow<UiState<List<Data2>>> = _users.asStateFlow()\n\n    fun loadData2s() {\n        viewModelScope.launch {\n            _users.value = UiState.Loading\n            repository.getData2s()\n                .onSuccess { _users.value = UiState.Success(it) }\n                .onFailure { _users.value = UiState.Error(it.message) }\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_4.kt"
+  },
+  {
+    "code": "class CallbackHell {\n\n    fun loadData(callback: (String) -> Unit) {\n        fetchFromServer { result1 ->\n            parseResult(result1) { result2 ->\n                validateData(result2) { result3 ->\n                    saveToDatabase(result3) { result4 ->\n                        updateCache(result4) { result5 ->\n                            notifyObservers(result5) { result6 ->\n                                callback(result6)\n                            }\n                        }\n                    }\n                }\n            }\n        }\n    }\n\n    private fun fetchFromServer(callback: (String) -> Unit) {\n        callback(\"data\")\n    }\n\n    private fun parseResult(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun validateData(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun saveToDatabase(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun updateCache(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun notifyObservers(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_24.kt"
+  },
+  {
+    "code": "class ValidationUtils {\n\n    fun validateInput(input: String): Boolean {\n        var isValid = false\n        if (input != null) {\n            if (input.length > 0) {\n                if (input.length < 100) {\n                    if (input.matches(Regex(\"[a-zA-Z0-9]+\"))) {\n                        if (!input.startsWith(\"_\")) {\n                            if (!input.endsWith(\"_\")) {\n                                isValid = true\n                            }\n                        }\n                    }\n                }\n            }\n        }\n        return isValid\n    }\n\n    fun processData(data: List<String>): List<String> {\n        val result = mutableListOf<String>()\n        for (i in data.indices) {\n            for (j in data.indices) {\n                if (i != j) {\n                    if (data[i].length > data[j].length) {\n                        result.add(data[i])\n                    }\n                }\n            }\n        }\n        return result.distinct()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_18.kt"
+  },
+  {
+    "code": "class Data0Fragment : Fragment() {\n\n    private var _binding: FragmentData0Binding? = null\n    private val binding get() = _binding!!\n\n    override fun onCreateView(\n        inflater: LayoutInflater,\n        container: ViewGroup?,\n        savedInstanceState: Bundle?\n    ): View {\n        _binding = FragmentData0Binding.inflate(inflater, container, false)\n        return binding.root\n    }\n\n    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {\n        super.onViewCreated(view, savedInstanceState)\n        binding.btnSave.setOnClickListener {\n            saveData()\n        }\n    }\n\n    override fun onDestroyView() {\n        super.onDestroyView()\n        _binding = null\n    }\n\n    private fun saveData() {\n        // Implementation\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_12.kt"
+  },
+  {
+    "code": "class MainActivity : AppCompatActivity() {\n\n    private lateinit var binding: ActivityMainBinding\n    private val viewModel: MainViewModel by viewModels()\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        binding = ActivityMainBinding.inflate(layoutInflater)\n        setContentView(binding.root)\n\n        setupViews()\n        observeViewModel()\n    }\n\n    private fun setupViews() {\n        binding.btnRefresh.setOnClickListener {\n            viewModel.loadData()\n        }\n    }\n\n    private fun observeViewModel() {\n        viewModel.data.observe(this) { data ->\n            binding.textView.text = data.toString()\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_9.kt"
+  },
+  {
+    "code": "class DataActivity : AppCompatActivity() {\n\n    var dataList = ArrayList<String>()\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_data)\n\n        Thread {\n            val data = loadDataFromNetwork()\n            runOnUiThread {\n                dataList.addAll(data)\n                updateUI()\n            }\n        }.start()\n    }\n\n    private fun loadDataFromNetwork(): List<String> {\n        Thread.sleep(2000)\n        return listOf(\"Record11\", \"Record12\", \"Record13\")\n    }\n\n    private fun updateUI() {\n        val textView = findViewById<TextView>(R.id.textView)\n        textView.text = dataList.joinToString()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_3.kt"
+  },
+  {
+    "code": "class GetData1UseCase @Inject constructor(\n    private val repository: Data1Repository,\n    private val dispatcher: CoroutineDispatcher = Dispatchers.IO\n) {\n    suspend operator fun invoke(userId: String): Result<Data1> = withContext(dispatcher) {\n        repository.getData1ById(userId)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_8.kt"
+  },
+  {
+    "code": "sealed class UiState<out T> {\n    object Loading : UiState<Nothing>()\n    data class Success<T>(val data: T) : UiState<T>()\n    data class Error(val message: String?) : UiState<Nothing>()\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_23.kt"
+  },
+  {
+    "code": "class Data0Adapter(\n    private var users: List<Data0>\n) : RecyclerView.Adapter<Data0Adapter.Data0ViewHolder>() {\n\n    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Data0ViewHolder {\n        val binding = Record0Data0Binding.inflate(\n            LayoutInflater.from(parent.context), parent, false\n        )\n        return Data0ViewHolder(binding)\n    }\n\n    override fun onBindViewHolder(holder: Data0ViewHolder, position: Int) {\n        holder.bind(users[position])\n    }\n\n    override fun getRecord0Count() = users.size\n\n    fun updateData0s(newData0s: List<Data0>) {\n        users = newData0s\n        notifyDataSetChanged()\n    }\n\n    class Data0ViewHolder(private val binding: Record0Data0Binding) :\n        RecyclerView.ViewHolder(binding.root) {\n\n        fun bind(user: Data0) {\n            binding.tvName.text = user.name\n            binding.tvEmail.text = user.email\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_17.kt"
+  },
+  {
+    "code": "class ProductViewModel : ViewModel() {\n\n    val entity2s = MutableLiveData<List<Product>>()\n    private val repository = ProductRepository()\n\n    fun fetchProducts() {\n        viewModelScope.launch {\n            val result = repository.getProducts()\n            entity2s.postValue(result)\n        }\n    }\n\n    fun deleteProduct(id: String) {\n        viewModelScope.launch {\n            repository.delete(id)\n            fetchProducts()\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_4.kt"
+  },
+  {
+    "code": "class BadActivity : AppCompatActivity() {\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_bad)\n\n        findViewById<Button>(R.id.btn1).setOnClickListener { doAction1() }\n        findViewById<Button>(R.id.btn2).setOnClickListener { doAction2() }\n        findViewById<Button>(R.id.btn3).setOnClickListener { doAction3() }\n        findViewById<Button>(R.id.btn4).setOnClickListener { doAction4() }\n        findViewById<Button>(R.id.btn5).setOnClickListener { doAction5() }\n        findViewById<TextView>(R.id.text1).text = \"Hello\"\n        findViewById<TextView>(R.id.text2).text = \"World\"\n        findViewById<EditText>(R.id.edit1).hint = \"Enter\"\n    }\n\n    fun doAction1() {\n        findViewById<TextView>(R.id.result).text = \"Action 1\"\n    }\n\n    fun doAction2() {\n        findViewById<TextView>(R.id.result).text = \"Action 2\"\n    }\n\n    fun doAction3() {\n        findViewById<TextView>(R.id.result).text = \"Action 3\"\n    }\n\n    fun doAction4() {\n        findViewById<TextView>(R.id.result).text = \"Action 4\"\n    }\n\n    fun doAction5() {\n        findViewById<TextView>(R.id.result).text = \"Action 5\"\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_10.kt"
+  },
+  {
+    "code": "class GetData0UseCase @Inject constructor(\n    private val repository: Data0Repository,\n    private val dispatcher: CoroutineDispatcher = Dispatchers.IO\n) {\n    suspend operator fun invoke(userId: String): Result<Data0> = withContext(dispatcher) {\n        repository.getData0ById(userId)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_7.kt"
+  },
+  {
+    "code": "@Composable\nfun Data3ListScreen(\n    viewModel: Data3ViewModel = hiltViewModel()\n) {\n    val uiState by viewModel.users.collectAsStateWithLifecycle()\n\n    when (val state = uiState) {\n        is UiState.Loading -> LoadingIndicator()\n        is UiState.Success -> Data3List(users = state.data)\n        is UiState.Error -> ErrorMessage(message = state.message)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_20.kt"
+  },
+  {
+    "code": "sealed class UiState<out T> {\n    object Loading : UiState<Nothing>()\n    data class Success<T>(val data: T) : UiState<T>()\n    data class Error(val message: String?) : UiState<Nothing>()\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_22.kt"
+  },
+  {
+    "code": "class ValidationUtils {\n\n    fun validateInput(input: String): Boolean {\n        var isValid = false\n        if (input != null) {\n            if (input.length > 0) {\n                if (input.length < 100) {\n                    if (input.matches(Regex(\"[a-zA-Z0-9]+\"))) {\n                        if (!input.startsWith(\"_\")) {\n                            if (!input.endsWith(\"_\")) {\n                                isValid = true\n                            }\n                        }\n                    }\n                }\n            }\n        }\n        return isValid\n    }\n\n    fun processData(data: List<String>): List<String> {\n        val result = mutableListOf<String>()\n        for (i in data.indices) {\n            for (j in data.indices) {\n                if (i != j) {\n                    if (data[i].length > data[j].length) {\n                        result.add(data[i])\n                    }\n                }\n            }\n        }\n        return result.distinct()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_14.kt"
+  },
+  {
+    "code": "class CallbackHell {\n\n    fun loadData(callback: (String) -> Unit) {\n        fetchFromServer { result1 ->\n            parseResult(result1) { result2 ->\n                validateData(result2) { result3 ->\n                    saveToDatabase(result3) { result4 ->\n                        updateCache(result4) { result5 ->\n                            notifyObservers(result5) { result6 ->\n                                callback(result6)\n                            }\n                        }\n                    }\n                }\n            }\n        }\n    }\n\n    private fun fetchFromServer(callback: (String) -> Unit) {\n        callback(\"data\")\n    }\n\n    private fun parseResult(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun validateData(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun saveToDatabase(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun updateCache(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun notifyObservers(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_23.kt"
+  },
+  {
+    "code": "class ApiClient {\n\n    fun fetchData0s(): List<Data0> {\n        val response = httpClient.get(\"https://api.example.com/users\")\n        val json = response.body()\n        return parseData0s(json)\n    }\n\n    fun parseData0s(json: String): List<Data0> {\n        val users = mutableListOf<Data0>()\n        val jsonArray = JSONArray(json)\n        for (i in 0 until jsonArray.length()) {\n            val obj = jsonArray.getJSONObject(i)\n            users.add(Data0(\n                obj.getString(\"id\"),\n                obj.getString(\"name\"),\n                obj.getString(\"email\")\n            ))\n        }\n        return users\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_20.kt"
+  },
+  {
+    "code": "class MainActivity : AppCompatActivity() {\n\n    private lateinit var binding: ActivityMainBinding\n    private val viewModel: MainViewModel by viewModels()\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        binding = ActivityMainBinding.inflate(layoutInflater)\n        setContentView(binding.root)\n\n        setupViews()\n        observeViewModel()\n    }\n\n    private fun setupViews() {\n        binding.btnRefresh.setOnClickListener {\n            viewModel.loadData()\n        }\n    }\n\n    private fun observeViewModel() {\n        viewModel.data.observe(this) { data ->\n            binding.textView.text = data.toString()\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_10.kt"
+  },
+  {
+    "code": "class ProductViewModel : ViewModel() {\n\n    val entity3s = MutableLiveData<List<Product>>()\n    private val repository = ProductRepository()\n\n    fun fetchProducts() {\n        viewModelScope.launch {\n            val result = repository.getProducts()\n            entity3s.postValue(result)\n        }\n    }\n\n    fun deleteProduct(id: String) {\n        viewModelScope.launch {\n            repository.delete(id)\n            fetchProducts()\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "GOOD",
+    "file_path": "good/Sample_5.kt"
+  },
+  {
+    "code": "@Composable\nfun UserListScreen(\n    viewModel: UserViewModel = hiltViewModel()\n) {\n    val uiState by viewModel.users.collectAsStateWithLifecycle()\n\n    when (val state = uiState) {\n        is UiState.Loading -> LoadingIndicator()\n        is UiState.Success -> UserList(users = state.data)\n        is UiState.Error -> ErrorMessage(message = state.message)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_16.kt"
+  },
+  {
+    "code": "class ApiClient {\n\n    fun fetchData3s(): List<Data3> {\n        val response = httpClient.get(\"https://api.example.com/users\")\n        val json = response.body()\n        return parseData3s(json)\n    }\n\n    fun parseData3s(json: String): List<Data3> {\n        val users = mutableListOf<Data3>()\n        val jsonArray = JSONArray(json)\n        for (i in 0 until jsonArray.length()) {\n            val obj = jsonArray.getJSONObject(i)\n            users.add(Data3(\n                obj.getString(\"id\"),\n                obj.getString(\"name\"),\n                obj.getString(\"email\")\n            ))\n        }\n        return users\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_23.kt"
+  },
+  {
+    "code": "class BadAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {\n\n    var items = mutableListOf<String>()\n\n    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {\n        val tv = TextView(parent.context)\n        tv.textSize = 16f\n        tv.setPadding(16, 16, 16, 16)\n        return object : RecyclerView.ViewHolder(tv) {}\n    }\n\n    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {\n        val textView = holder.itemView as TextView\n        textView.text = items[position]\n        textView.setOnClickListener {\n            items.removeAt(position)\n            notifyDataSetChanged()\n            Toast.makeText(it.context, \"Removed\", Toast.LENGTH_SHORT).show()\n        }\n    }\n\n    override fun getRecord3Count() = items.size\n\n    fun addRecord3(item: String) {\n        items.add(item)\n        notifyDataSetChanged()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_17.kt"
+  },
+  {
+    "code": "class Data2RepositoryImpl @Inject constructor(\n    private val remoteDataSource: Data2RemoteDataSource,\n    private val localDataSource: Data2LocalDataSource\n) : Data2Repository {\n\n    override suspend fun getData2s(): Result<List<Data2>> = try {\n        val users = remoteDataSource.fetchData2s()\n        localDataSource.saveData2s(users)\n        Result.success(users)\n    } catch (e: Exception) {\n        val cachedData2s = localDataSource.getData2s()\n        if (cachedData2s.isNotEmpty()) {\n            Result.success(cachedData2s)\n        } else {\n            Result.failure(e)\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_14.kt"
+  },
+  {
+    "code": "class ValidationUtils {\n\n    fun validateInput(input: String): Boolean {\n        var isValid = false\n        if (input != null) {\n            if (input.length > 0) {\n                if (input.length < 100) {\n                    if (input.matches(Regex(\"[a-zA-Z0-9]+\"))) {\n                        if (!input.startsWith(\"_\")) {\n                            if (!input.endsWith(\"_\")) {\n                                isValid = true\n                            }\n                        }\n                    }\n                }\n            }\n        }\n        return isValid\n    }\n\n    fun processData(data: List<String>): List<String> {\n        val result = mutableListOf<String>()\n        for (i in data.indices) {\n            for (j in data.indices) {\n                if (i != j) {\n                    if (data[i].length > data[j].length) {\n                        result.add(data[i])\n                    }\n                }\n            }\n        }\n        return result.distinct()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_13.kt"
+  },
+  {
+    "code": "class GetData2UseCase @Inject constructor(\n    private val repository: Data2Repository,\n    private val dispatcher: CoroutineDispatcher = Dispatchers.IO\n) {\n    suspend operator fun invoke(userId: String): Result<Data2> = withContext(dispatcher) {\n        repository.getData2ById(userId)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_9.kt"
+  },
+  {
+    "code": "class DataActivity : AppCompatActivity() {\n\n    var dataList = ArrayList<String>()\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_data)\n\n        Thread {\n            val data = loadDataFromNetwork()\n            runOnUiThread {\n                dataList.addAll(data)\n                updateUI()\n            }\n        }.start()\n    }\n\n    private fun loadDataFromNetwork(): List<String> {\n        Thread.sleep(2000)\n        return listOf(\"Record21\", \"Record22\", \"Record23\")\n    }\n\n    private fun updateUI() {\n        val textView = findViewById<TextView>(R.id.textView)\n        textView.text = dataList.joinToString()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_4.kt"
+  },
+  {
+    "code": "class UserViewModel(\n    private val repository: UserRepository\n) : ViewModel() {\n\n    private val _users = MutableStateFlow<UiState<List<User>>>(UiState.Loading)\n    val users: StateFlow<UiState<List<User>>> = _users.asStateFlow()\n\n    fun loadUsers() {\n        viewModelScope.launch {\n            _users.value = UiState.Loading\n            repository.getUsers()\n                .onSuccess { _users.value = UiState.Success(it) }\n                .onFailure { _users.value = UiState.Error(it.message) }\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_1.kt"
+  },
+  {
+    "code": "class ValidationUtils {\n\n    fun validateInput(input: String): Boolean {\n        var isValid = false\n        if (input != null) {\n            if (input.length > 0) {\n                if (input.length < 100) {\n                    if (input.matches(Regex(\"[a-zA-Z0-9]+\"))) {\n                        if (!input.startsWith(\"_\")) {\n                            if (!input.endsWith(\"_\")) {\n                                isValid = true\n                            }\n                        }\n                    }\n                }\n            }\n        }\n        return isValid\n    }\n\n    fun processData(data: List<String>): List<String> {\n        val result = mutableListOf<String>()\n        for (i in data.indices) {\n            for (j in data.indices) {\n                if (i != j) {\n                    if (data[i].length > data[j].length) {\n                        result.add(data[i])\n                    }\n                }\n            }\n        }\n        return result.distinct()\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_16.kt"
+  },
+  {
+    "code": "class FormActivity : AppCompatActivity() {\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_form)\n\n        val editName = findViewById<EditText>(R.id.editName)\n        val editEmail = findViewById<EditText>(R.id.editEmail)\n        val editPhone = findViewById<EditText>(R.id.editPhone)\n        val btnSubmit = findViewById<Button>(R.id.btnSubmit)\n        val btnCancel = findViewById<Button>(R.id.btnCancel)\n\n        btnSubmit.setOnClickListener {\n            val name = editName.text.toString()\n            val email = editEmail.text.toString()\n            val phone = editPhone.text.toString()\n\n            if (name.isNotEmpty() && email.isNotEmpty()) {\n                submitForm(name, email, phone)\n            }\n        }\n\n        btnCancel.setOnClickListener {\n            finish()\n        }\n    }\n\n    private fun submitForm(name: String, email: String, phone: String) {\n        // Submit logic\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_9.kt"
+  },
+  {
+    "code": "class CallbackHell {\n\n    fun loadData(callback: (String) -> Unit) {\n        fetchFromServer { result1 ->\n            parseResult(result1) { result2 ->\n                validateData(result2) { result3 ->\n                    saveToDatabase(result3) { result4 ->\n                        updateCache(result4) { result5 ->\n                            notifyObservers(result5) { result6 ->\n                                callback(result6)\n                            }\n                        }\n                    }\n                }\n            }\n        }\n    }\n\n    private fun fetchFromServer(callback: (String) -> Unit) {\n        callback(\"data\")\n    }\n\n    private fun parseResult(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun validateData(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun saveToDatabase(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun updateCache(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n\n    private fun notifyObservers(data: String, callback: (String) -> Unit) {\n        callback(data)\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "POOR",
+    "file_path": "poor/Sample_19.kt"
+  },
+  {
+    "code": "class FormActivity : AppCompatActivity() {\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_form)\n\n        val editName = findViewById<EditText>(R.id.editName)\n        val editEmail = findViewById<EditText>(R.id.editEmail)\n        val editPhone = findViewById<EditText>(R.id.editPhone)\n        val btnSubmit = findViewById<Button>(R.id.btnSubmit)\n        val btnCancel = findViewById<Button>(R.id.btnCancel)\n\n        btnSubmit.setOnClickListener {\n            val name = editName.text.toString()\n            val email = editEmail.text.toString()\n            val phone = editPhone.text.toString()\n\n            if (name.isNotEmpty() && email.isNotEmpty()) {\n                submitForm(name, email, phone)\n            }\n        }\n\n        btnCancel.setOnClickListener {\n            finish()\n        }\n    }\n\n    private fun submitForm(name: String, email: String, phone: String) {\n        // Submit logic\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "FAIR",
+    "file_path": "fair/Sample_8.kt"
+  },
+  {
+    "code": "class Data0ViewModel(\n    private val repository: Data0Repository\n) : ViewModel() {\n\n    private val _users = MutableStateFlow<UiState<List<Data0>>>(UiState.Loading)\n    val users: StateFlow<UiState<List<Data0>>> = _users.asStateFlow()\n\n    fun loadData0s() {\n        viewModelScope.launch {\n            _users.value = UiState.Loading\n            repository.getData0s()\n                .onSuccess { _users.value = UiState.Success(it) }\n                .onFailure { _users.value = UiState.Error(it.message) }\n        }\n    }\n}",
+    "language": "kotlin",
+    "quality_label": "EXCELLENT",
+    "file_path": "excellent/Sample_2.kt"
+  }
+]
