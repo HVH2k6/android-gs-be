@@ -29,6 +29,14 @@ async def create_assignment(
     return await AssignmentController.create_assignment(assignment_data)
 
 
+@router.get("/", response_model=List[AssignmentResponse])
+async def list_assignments(
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Published assignments, ordered — lets a client pick one without hardcoding an id."""
+    return await AssignmentController.list_published_assignments()
+
+
 @router.get("/{assignment_id}", response_model=AssignmentResponse)
 async def get_assignment(
     assignment_id: str,

@@ -101,6 +101,15 @@ class AssignmentController:
         return AssignmentResponse.model_validate(assignment)
 
     @staticmethod
+    async def list_published_assignments() -> List[AssignmentResponse]:
+        """All published assignments, in course order."""
+        assignments = await prisma.assignment.find_many(
+            where={"isPublished": True},
+            order=[{"courseId": "asc"}, {"order": "asc"}],
+        )
+        return [AssignmentResponse.model_validate(a) for a in assignments]
+
+    @staticmethod
     async def get_assignment(assignment_id: str) -> AssignmentResponse:
         """Get assignment by ID"""
         assignment = await prisma.assignment.find_unique(where={"id": assignment_id})
