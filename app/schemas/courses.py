@@ -13,63 +13,66 @@ class CourseBase(BaseModel):
 
 
 class CourseCreate(CourseBase):
-    is_published: bool = False
+    isPublished: bool = Field(False, alias="is_published")
 
 
 class CourseResponse(CourseBase):
     id: str
-    is_published: bool
-    created_at: datetime
-    updated_at: datetime
+    isPublished: bool = Field(..., alias="is_published")
+    createdAt: datetime
+    updatedAt: datetime
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class AssignmentBase(BaseModel):
     title: str
     description: str
     difficulty: str = "BEGINNER"
-    time_estimate: Optional[int] = None
+    timeEstimate: Optional[int] = Field(None, alias="time_estimate")
 
 
 class AssignmentCreate(AssignmentBase):
-    course_id: str
+    courseId: str = Field(..., alias="course_id")
     order: int
-    is_published: bool = False
+    isPublished: bool = Field(False, alias="is_published")
 
 
 class AssignmentResponse(AssignmentBase):
     id: str
-    course_id: str
+    courseId: str
     order: int
-    is_published: bool
-    created_at: datetime
-    updated_at: datetime
+    isPublished: bool
+    createdAt: datetime
+    updatedAt: datetime
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class RequirementBase(BaseModel):
     type: str
     title: str
     description: str
-    eval_method: str
-    eval_config: Optional[dict] = None
+    evalMethod: str = Field(..., alias="eval_method")
+    evalConfig: Optional[dict] = Field(None, alias="eval_config")
     points: int = 1
 
 
 class RequirementCreate(RequirementBase):
-    assignment_id: str
+    assignmentId: str = Field(..., alias="assignment_id")
     order: int
 
 
 class RequirementResponse(RequirementBase):
     id: str
-    assignment_id: str
+    assignmentId: str
     order: int
-    created_at: datetime
+    createdAt: datetime
 
     class Config:
         from_attributes = True
+        populate_by_name = True
